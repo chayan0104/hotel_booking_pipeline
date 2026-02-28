@@ -1,16 +1,19 @@
 services:
-  oracle-db:
-    image: gvenzl/oracle-xe:21-slim
+  mysql-db:
+    image: mysql:8.4
+    container_name: hotel_mysql_db
     environment:
-      - ORACLE_PASSWORD
-      - APP_USER
-      - APP_USER_PASSWORD
+      - MYSQL_ROOT_PASSWORD
+      - MYSQL_DATABASE
+      - MYSQL_USER
+      - MYSQL_PASSWORD
     ports:
-      - "${ORACLE_PORT}:1521"
+      - "${MYSQL_PORT}:3306"
     volumes:
-      - oracle_data:/opt/oracle/oradata
+      - mysql_data:/var/lib/mysql
 
   rest-api:
+    container_name: hotel_rest_api
     build:
       context: "./Rest Api"
     environment:
@@ -18,9 +21,10 @@ services:
     ports:
       - "${API_PORT}:8080"
     depends_on:
-      - oracle-db
+      - mysql-db
 
   react-app:
+    container_name: hotel_react_app
     build:
       context: "./React App"
     ports:
@@ -29,4 +33,4 @@ services:
       - rest-api
 
 volumes:
-  oracle_data:
+  mysql_data:

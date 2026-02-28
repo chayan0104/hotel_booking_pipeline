@@ -1,12 +1,12 @@
 package com.demo.dto;
 
-public class StatusUpdateRequest {
+public class BookingStatusUpdateRequest {
     private String status;
 
-    public StatusUpdateRequest() {
+    public BookingStatusUpdateRequest() {
     }
 
-    public StatusUpdateRequest(String status) {
+    public BookingStatusUpdateRequest(String status) {
         this.status = status;
     }
 

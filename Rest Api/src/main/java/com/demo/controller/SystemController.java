@@ -14,7 +14,7 @@ import java.util.Map;
 @RequestMapping("/api/system")
 public class SystemController {
 
-    @Value("${spring.application.name:demo-rest-api}")
+    @Value("${spring.application.name:hotel-booking-api}")
     private String appName;
 
     @GetMapping("/health")
@@ -26,13 +26,13 @@ public class SystemController {
     public Map<String, Object> info() {
         Map<String, Object> payload = new HashMap<String, Object>();
         payload.put("application", appName);
-        payload.put("service", "React + Spring Boot + Oracle Demo API");
+        payload.put("service", "Hotel Booking Service API");
         payload.put("timestamp", Instant.now().toString());
         payload.put("endpoints", new String[]{
                 "/hello",
                 "/api/system/health",
                 "/api/system/info",
-                "/api/tasks"
+                "/api/bookings"
         });
         return payload;
     }

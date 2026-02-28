@@ -1,12 +1,12 @@
-# React + Spring Boot + Oracle DevSecOps Pipeline
+# Hotel Booking Service + DevSecOps Pipeline
 
-This repository demonstrates a simple 3-tier application with CI/CD security gates.
+This repository demonstrates a hotel booking application with CI/CD security gates.
 - `react-app`: frontend served by Nginx
-- `rest-api`: Spring Boot backend
-- `oracle-db`: Oracle XE database
+- `rest-api`: Spring Boot backend for booking operations
+- `mysql-db`: MySQL database
 
 ## Architecture
-`Browser -> react-app -> rest-api -> oracle-db`
+`Browser -> react-app -> rest-api -> mysql-db`
 
 Why this architecture:
 - It separates UI, API, and DB responsibilities for easier testing and scaling.
@@ -15,7 +15,7 @@ Why this architecture:
 
 ## Prerequisites
 - Docker Desktop (or Docker Engine + Compose v2)
-- Free host ports from `.env` (default: `3000`, `9090`, `1521`)
+- Free host ports from `.env` (default: `3000`, `9090`, `3306`)
 
 Why these are needed:
 - Docker/Compose runs all services consistently across environments.
@@ -54,14 +54,24 @@ Why: confirms all containers are healthy and mapped to expected ports.
 - Frontend: `http://localhost:3000`
 - API Hello: `http://localhost:${API_PORT}/hello`
 - API Health: `http://localhost:${API_PORT}/api/system/health`
+- Bookings API: `http://localhost:${API_PORT}/api/bookings`
+
+## Booking API Endpoints
+- `GET /api/bookings` - list all bookings
+- `GET /api/bookings/{id}` - get one booking
+- `POST /api/bookings` - create a booking
+- `PUT /api/bookings/{id}` - update booking details
+- `PATCH /api/bookings/{id}/status` - update booking status
+- `DELETE /api/bookings/{id}` - cancel booking
 
 ## Environment Variables
 | Variable | Default | Why It Is Used |
 |---|---|---|
-| `ORACLE_PASSWORD` | `Oracle_123` | Sets Oracle SYS/SYSTEM password at DB initialization |
-| `APP_USER` | `devops` | Creates application schema user in Oracle |
-| `APP_USER_PASSWORD` | `devops@420` | Password for application schema user |
-| `ORACLE_PORT` | `1521` | Host-to-container mapping for Oracle listener |
+| `MYSQL_ROOT_PASSWORD` | `root@123` | Root password for MySQL initialization |
+| `MYSQL_DATABASE` | `hotel_booking` | Default database created by MySQL container |
+| `MYSQL_USER` | `hotel_user` | Application database user |
+| `MYSQL_PASSWORD` | `hotel_pass@123` | Password for application database user |
+| `MYSQL_PORT` | `3306` | Host-to-container mapping for MySQL |
 | `API_PORT` | `9090` | Host-to-container mapping for backend API |
 | `WEB_PORT` | `3000` | Host-to-container mapping for frontend |
 | `JAVA_OPTS` | `-Xms256m -Xmx512m` | Controls JVM memory/runtime behavior in container |
@@ -84,7 +94,7 @@ Why: only promoted build gets deployed.
 ```bash
 docker compose logs -f rest-api
 docker compose logs -f react-app
-docker compose logs -f oracle-db
+docker compose logs -f mysql-db
 docker compose down
 ```
 
@@ -93,7 +103,7 @@ docker compose down
   Change `API_PORT` in `.env` if current value is in use.
 - Frontend `502 Bad Gateway`:
   Backend is still starting; wait and refresh.
-- Oracle startup delay:
+- MySQL startup delay:
   First run is slower because DB initialization takes time.
 
 ## Design Principle
@@ -136,7 +146,7 @@ trivy --version
 ```
 7. Connect Jenkins pipeline job to this GitHub repository.
 8. Implement pipeline stages in this order: Checkout -> SonarQube -> OWASP -> Docker Build -> Trivy -> Deploy.
-9. Keep deployment values in `.env` (`API_PORT`, `WEB_PORT`, `ORACLE_PORT`, DB credentials).
+9. Keep deployment values in `.env` (`API_PORT`, `WEB_PORT`, `MYSQL_PORT`, DB credentials).
 10. Run pipeline and validate:
    - Frontend: `http://localhost:3000`
    - API Health: `http://localhost:${API_PORT}/api/system/health`
