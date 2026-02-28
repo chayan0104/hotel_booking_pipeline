@@ -1,0 +1,248 @@
+:root {
+  --paper: #fff5ea;
+  --paper-strong: #ffe8cf;
+  --ink: #152238;
+  --muted: #4e5c70;
+  --accent: #1f7a8c;
+  --accent-strong: #125e72;
+  --ok: #2a9d8f;
+  --warn: #d1495b;
+  --surface: #ffffff;
+  --shadow: 0 18px 45px rgba(21, 34, 56, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Avenir Next", "Franklin Gothic Medium", "Trebuchet MS", sans-serif;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 12% 14%, rgba(31, 122, 140, 0.2), transparent 30%),
+    radial-gradient(circle at 88% 22%, rgba(255, 142, 93, 0.2), transparent 34%),
+    linear-gradient(160deg, #fffdf7 0%, var(--paper) 40%, var(--paper-strong) 100%);
+}
+
+.app {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2.2rem 1.2rem 3rem;
+  display: grid;
+  gap: 1.2rem;
+}
+
+.hero {
+  background: linear-gradient(140deg, #f7fbff 0%, #e9f8fb 55%, #fff8ee 100%);
+  border: 1px solid rgba(31, 122, 140, 0.15);
+  border-radius: 22px;
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  animation: rise 550ms ease-out;
+}
+
+.eyebrow {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-size: 0.74rem;
+  color: var(--accent-strong);
+  font-weight: 800;
+}
+
+.hero h1 {
+  margin: 0.55rem 0 0.6rem;
+  font-size: clamp(1.45rem, 4.5vw, 2.35rem);
+  line-height: 1.15;
+}
+
+.hero-copy {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--muted);
+  max-width: 68ch;
+}
+
+.grid {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.services {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.card {
+  border-radius: 18px;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid rgba(21, 34, 56, 0.09);
+  box-shadow: var(--shadow);
+  animation: rise 550ms ease-out;
+}
+
+.card h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.card p {
+  margin: 0.45rem 0 0.7rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.card strong {
+  display: inline-block;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(31, 122, 140, 0.13);
+  color: var(--accent-strong);
+  font-size: 0.86rem;
+}
+
+.panel {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 1.2rem;
+  border: 1px solid rgba(21, 34, 56, 0.09);
+  box-shadow: var(--shadow);
+  animation: rise 650ms ease-out;
+}
+
+.panel-head {
+  display: flex;
+  gap: 0.7rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.panel h2 {
+  margin: 0;
+  font-size: 1.08rem;
+}
+
+.panel-head span {
+  color: var(--muted);
+  font-size: 0.86rem;
+}
+
+.api-message {
+  margin: 0.85rem 0 0;
+  font-size: 1rem;
+  line-height: 1.6;
+  background: #f8fbff;
+  border: 1px solid rgba(31, 122, 140, 0.2);
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
+  color: #0d3f57;
+  word-break: break-word;
+}
+
+.stages {
+  margin-top: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.stage {
+  border-radius: 15px;
+  padding: 0.9rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fcff 100%);
+  border: 1px solid rgba(21, 34, 56, 0.08);
+}
+
+.stage-number {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--accent-strong);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.stage h3 {
+  margin: 0.4rem 0 0.35rem;
+  font-size: 1rem;
+}
+
+.stage p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.status-chip {
+  margin-top: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  padding: 0.45rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.status-chip .dot {
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 50%;
+}
+
+.status-chip.loading {
+  background: rgba(18, 94, 114, 0.12);
+  color: var(--accent-strong);
+}
+
+.status-chip.loading .dot {
+  background: var(--accent);
+}
+
+.status-chip.online {
+  background: rgba(42, 157, 143, 0.16);
+  color: #165e57;
+}
+
+.status-chip.online .dot {
+  background: var(--ok);
+}
+
+.status-chip.offline {
+  background: rgba(209, 73, 91, 0.18);
+  color: #8a1323;
+}
+
+.status-chip.offline .dot {
+  background: var(--warn);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 680px) {
+  .app {
+    padding: 1rem 0.8rem 2rem;
+    gap: 0.9rem;
+  }
+
+  .hero,
+  .panel,
+  .card {
+    padding: 0.95rem;
+  }
+
+  .hero-copy,
+  .api-message {
+    font-size: 0.95rem;
+  }
+}
