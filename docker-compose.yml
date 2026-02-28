@@ -6,7 +6,7 @@ services:
       - APP_USER
       - APP_USER_PASSWORD
     ports:
-      - "1521:1521"
+      - "${ORACLE_PORT}:1521"
     volumes:
       - oracle_data:/opt/oracle/oradata
 
@@ -16,7 +16,7 @@ services:
     environment:
       - JAVA_OPTS
     ports:
-      - "8080:8080"
+      - "${API_PORT}:8080"
     depends_on:
       - oracle-db
 
@@ -24,7 +24,7 @@ services:
     build:
       context: "./React App"
     ports:
-      - "3000:80"
+      - "${WEB_PORT}:80"
     depends_on:
       - rest-api
 
