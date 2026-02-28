@@ -1,39 +1,73 @@
 package com.demo.model;
 
+import javax.persistence.Column;
+import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
+import javax.persistence.Table;
+import java.time.Instant;
+import java.time.LocalDate;
+
+@Entity
+@Table(name = "bookings")
 public class Booking {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private String guestName;
+
+    @Column(nullable = false)
     private String guestEmail;
+
     private String phone;
+
+    @Column(nullable = false)
     private String roomType;
-    private String checkInDate;
-    private String checkOutDate;
+
+    @Column(nullable = false)
+    private LocalDate checkInDate;
+
+    @Column(nullable = false)
+    private LocalDate checkOutDate;
+
+    @Column(nullable = false)
     private Integer guests;
+
+    @Column(nullable = false)
     private String status;
+
+    @Column(nullable = false)
     private Double totalAmount;
+
+    @Column(length = 1000)
     private String notes;
-    private String createdAt;
-    private String updatedAt;
+
+    @Column(nullable = false, updatable = false)
+    private Instant createdAt;
+
+    @Column(nullable = false)
+    private Instant updatedAt;
 
     public Booking() {
     }
 
     public Booking(
-            Long id,
             String guestName,
             String guestEmail,
             String phone,
             String roomType,
-            String checkInDate,
-            String checkOutDate,
+            LocalDate checkInDate,
+            LocalDate checkOutDate,
             Integer guests,
             String status,
             Double totalAmount,
-            String notes,
-            String createdAt,
-            String updatedAt
+            String notes
     ) {
-        this.id = id;
         this.guestName = guestName;
         this.guestEmail = guestEmail;
         this.phone = phone;
@@ -44,8 +78,6 @@ public class Booking {
         this.status = status;
         this.totalAmount = totalAmount;
         this.notes = notes;
-        this.createdAt = createdAt;
-        this.updatedAt = updatedAt;
     }
 
     public Long getId() {
@@ -88,19 +120,19 @@ public class Booking {
         this.roomType = roomType;
     }
 
-    public String getCheckInDate() {
+    public LocalDate getCheckInDate() {
         return checkInDate;
     }
 
-    public void setCheckInDate(String checkInDate) {
+    public void setCheckInDate(LocalDate checkInDate) {
         this.checkInDate = checkInDate;
     }
 
-    public String getCheckOutDate() {
+    public LocalDate getCheckOutDate() {
         return checkOutDate;
     }
 
-    public void setCheckOutDate(String checkOutDate) {
+    public void setCheckOutDate(LocalDate checkOutDate) {
         this.checkOutDate = checkOutDate;
     }
 
@@ -136,19 +168,31 @@ public class Booking {
         this.notes = notes;
     }
 
-    public String getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 
-    public String getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(String updatedAt) {
+    public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @PrePersist
+    public void onCreate() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = Instant.now();
     }
 }

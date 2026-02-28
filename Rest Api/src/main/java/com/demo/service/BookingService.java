@@ -2,20 +2,16 @@ package com.demo.service;
 
 import com.demo.dto.BookingRequest;
 import com.demo.model.Booking;
+import com.demo.repository.BookingRepository;
 import com.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
 
 @Service
 public class BookingService {
@@ -29,50 +25,40 @@ public class BookingService {
         ALLOWED_STATUSES.add("CANCELLED");
     }
 
-    private final Map<Long, Booking> bookings = new ConcurrentHashMap<Long, Booking>();
-    private final AtomicLong idGenerator = new AtomicLong(0);
+    private final BookingRepository bookingRepository;
 
-    public BookingService() {
-        seed();
+    public BookingService(BookingRepository bookingRepository) {
+        this.bookingRepository = bookingRepository;
     }
 
     public List<Booking> findAll() {
-        List<Booking> list = new ArrayList<Booking>(bookings.values());
+        List<Booking> list = bookingRepository.findAll();
         list.sort(Comparator.comparing(Booking::getId));
         return list;
     }
 
     public Booking findById(Long id) {
-        Booking booking = bookings.get(id);
-        if (booking == null) {
-            throw new ResourceNotFoundException("Booking not found for id: " + id);
-        }
-        return booking;
+        return bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found for id: " + id));
     }
 
     public Booking create(BookingRequest request) {
         validateRequest(request);
 
-        Long id = idGenerator.incrementAndGet();
-        String now = Instant.now().toString();
         Booking booking = new Booking(
-                id,
                 request.getGuestName().trim(),
                 normalizeEmail(request.getGuestEmail()),
                 normalizeText(request.getPhone()),
                 request.getRoomType().trim(),
-                normalizeDate(request.getCheckInDate()),
-                normalizeDate(request.getCheckOutDate()),
+                parseDate(request.getCheckInDate(), "checkInDate"),
+                parseDate(request.getCheckOutDate(), "checkOutDate"),
                 request.getGuests(),
                 normalizeStatus(request.getStatus()),
                 normalizeAmount(request.getTotalAmount()),
-                normalizeText(request.getNotes()),
-                now,
-                now
+                normalizeText(request.getNotes())
         );
 
-        bookings.put(id, booking);
-        return booking;
+        return bookingRepository.save(booking);
     }
 
     public Booking update(Long id, BookingRequest request) {
@@ -83,15 +69,14 @@ public class BookingService {
         existing.setGuestEmail(normalizeEmail(request.getGuestEmail()));
         existing.setPhone(normalizeText(request.getPhone()));
         existing.setRoomType(request.getRoomType().trim());
-        existing.setCheckInDate(normalizeDate(request.getCheckInDate()));
-        existing.setCheckOutDate(normalizeDate(request.getCheckOutDate()));
+        existing.setCheckInDate(parseDate(request.getCheckInDate(), "checkInDate"));
+        existing.setCheckOutDate(parseDate(request.getCheckOutDate(), "checkOutDate"));
         existing.setGuests(request.getGuests());
         existing.setStatus(normalizeStatus(request.getStatus()));
         existing.setTotalAmount(normalizeAmount(request.getTotalAmount()));
         existing.setNotes(normalizeText(request.getNotes()));
-        existing.setUpdatedAt(Instant.now().toString());
 
-        return existing;
+        return bookingRepository.save(existing);
     }
 
     public Booking updateStatus(Long id, String status) {
@@ -101,13 +86,12 @@ public class BookingService {
 
         Booking existing = findById(id);
         existing.setStatus(normalizeStatus(status));
-        existing.setUpdatedAt(Instant.now().toString());
-        return existing;
+        return bookingRepository.save(existing);
     }
 
     public void delete(Long id) {
         Booking existing = findById(id);
-        bookings.remove(existing.getId());
+        bookingRepository.delete(existing);
     }
 
     private void validateRequest(BookingRequest request) {
@@ -167,13 +151,6 @@ public class BookingService {
         return email.trim().toLowerCase();
     }
 
-    private String normalizeDate(String value) {
-        if (value == null) {
-            return "";
-        }
-        return value.trim();
-    }
-
     private Double normalizeAmount(Double amount) {
         if (amount == null) {
             return 0.0;
@@ -194,44 +171,5 @@ public class BookingService {
 
     private boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
-    }
-
-    private void seed() {
-        create(new BookingRequest(
-                "Aarav Sharma",
-                "aarav@example.com",
-                "+91-9000000001",
-                "DELUXE",
-                "2026-03-10",
-                "2026-03-13",
-                2,
-                "CONFIRMED",
-                24000.0,
-                "Airport pickup requested"
-        ));
-        create(new BookingRequest(
-                "Mia Patel",
-                "mia@example.com",
-                "+91-9000000002",
-                "SUITE",
-                "2026-03-12",
-                "2026-03-15",
-                3,
-                "PENDING",
-                42000.0,
-                "Early check-in if available"
-        ));
-        create(new BookingRequest(
-                "Noah Kim",
-                "noah@example.com",
-                "+91-9000000003",
-                "STANDARD",
-                "2026-03-18",
-                "2026-03-20",
-                1,
-                "CONFIRMED",
-                12000.0,
-                ""
-        ));
     }
 }

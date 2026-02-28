@@ -1,110 +1,195 @@
-# Hotel Booking Service + DevSecOps Pipeline
+# Hotel Booking Service (React + Spring Boot + MySQL)
 
-This repository demonstrates a hotel booking application with CI/CD security gates.
-- `react-app`: frontend served by Nginx
-- `rest-api`: Spring Boot backend for booking operations
-- `mysql-db`: MySQL database
+This project is a complete hotel booking service with:
+- Modern React frontend for operations team
+- Spring Boot REST API for booking management
+- MySQL database for persistent booking data
+- Docker Compose for one-command runtime
+- DevSecOps-oriented flow for Jenkins pipeline
 
-## Architecture
+Why this setup:
+- It is easy to run locally for developers.
+- It is easy to automate in CI/CD for DevOps.
+- It keeps frontend, backend, and database clearly separated.
+
+## What This Application Does
+
+- Create hotel bookings
+- View all bookings
+- Update booking status (`PENDING`, `CONFIRMED`, `CHECKED_IN`, `CHECKED_OUT`, `CANCELLED`)
+- Cancel bookings
+- Show dashboard metrics (active stays, check-ins/check-outs, revenue)
+
+Why these features:
+- They match common hotel front desk and operations workflows.
+
+## Tech Stack
+
+- Frontend: React 18 + Nginx
+- Backend: Spring Boot 2.7 + Spring Data JPA
+- Database: MySQL 8.4
+- Runtime: Docker Compose
+
+Why JPA:
+- Reduces boilerplate SQL code.
+- Keeps code easier to maintain and test.
+
+## Container Architecture
+
 `Browser -> react-app -> rest-api -> mysql-db`
 
-Why this architecture:
-- It separates UI, API, and DB responsibilities for easier testing and scaling.
-- Nginx proxy in frontend keeps browser calls simple (`/hello`, `/api/*`).
-- Docker Compose gives one command local startup for DevOps and CI smoke tests.
-
-## Prerequisites
-- Docker Desktop (or Docker Engine + Compose v2)
-- Free host ports from `.env` (default: `3000`, `9090`, `3306`)
-
-Why these are needed:
-- Docker/Compose runs all services consistently across environments.
-- Fixed host ports make health checks and Jenkins smoke tests predictable.
+Why:
+- `react-app` serves UI and proxies API calls.
+- `rest-api` owns business logic and validation.
+- `mysql-db` stores bookings permanently.
 
 ## Project Structure
-- `React App/`: frontend source and Docker assets
-- `Rest Api/`: backend source and Docker assets
-- `docker-compose.yml`: local runtime orchestration
-- `.env.example`: template for runtime configuration
 
-Why this layout:
-- Keeps deployment concerns (`docker-compose.yml`, `.env`) at repo root.
-- Keeps app code isolated per service for clear ownership.
+- `React App/` - React source + Docker/Nginx
+- `Rest Api/` - Spring Boot source + Docker
+- `docker-compose.yml` - multi-container runtime
+- `.env.example` - environment template
+
+## Environment Variables
+
+| Variable | Example | Why It Is Used |
+|---|---|---|
+| `MYSQL_ROOT_PASSWORD` | `root@123` | MySQL container initialization |
+| `MYSQL_DATABASE` | `hotel_booking` | Database name created at startup |
+| `MYSQL_USER` | `hotel_user` | App DB user |
+| `MYSQL_PASSWORD` | `hotel_pass@123` | App DB password |
+| `MYSQL_PORT` | `3306` | Host port to access MySQL |
+| `API_PORT` | `9090` | Host port for Spring Boot API |
+| `WEB_PORT` | `3000` | Host port for React UI |
+| `JAVA_OPTS` | `-Xms256m -Xmx512m` | JVM memory tuning for container |
 
 ## Quick Start
-1. Create `.env` from template:
+
+1. Copy environment file:
 ```powershell
 Copy-Item .env.example .env
 ```
-Why: `.env` holds environment-specific values without editing Compose file.
+Why: keeps deploy configuration out of source code.
 
-2. Start services:
+2. Build and start:
 ```bash
 docker compose up --build -d
 ```
-Why: builds fresh images and runs full stack in detached mode.
+Why: builds latest app images and runs all services together.
 
-3. Check service status:
+3. Check containers:
 ```bash
 docker compose ps
 ```
-Why: confirms all containers are healthy and mapped to expected ports.
+Why: verifies all services are up and mapped correctly.
 
-4. Validate endpoints:
+4. Open application:
 - Frontend: `http://localhost:3000`
-- API Hello: `http://localhost:${API_PORT}/hello`
-- API Health: `http://localhost:${API_PORT}/api/system/health`
-- Bookings API: `http://localhost:${API_PORT}/api/bookings`
+- API Hello: `http://localhost:9090/hello`
+- API Health: `http://localhost:9090/api/system/health`
 
-## Booking API Endpoints
-- `GET /api/bookings` - list all bookings
-- `GET /api/bookings/{id}` - get one booking
-- `POST /api/bookings` - create a booking
-- `PUT /api/bookings/{id}` - update booking details
-- `PATCH /api/bookings/{id}/status` - update booking status
-- `DELETE /api/bookings/{id}` - cancel booking
+## API Endpoints
 
-## Environment Variables
-| Variable | Default | Why It Is Used |
-|---|---|---|
-| `MYSQL_ROOT_PASSWORD` | `root@123` | Root password for MySQL initialization |
-| `MYSQL_DATABASE` | `hotel_booking` | Default database created by MySQL container |
-| `MYSQL_USER` | `hotel_user` | Application database user |
-| `MYSQL_PASSWORD` | `hotel_pass@123` | Password for application database user |
-| `MYSQL_PORT` | `3306` | Host-to-container mapping for MySQL |
-| `API_PORT` | `9090` | Host-to-container mapping for backend API |
-| `WEB_PORT` | `3000` | Host-to-container mapping for frontend |
-| `JAVA_OPTS` | `-Xms256m -Xmx512m` | Controls JVM memory/runtime behavior in container |
+- `GET /api/bookings` - list bookings
+- `GET /api/bookings/{id}` - booking by id
+- `POST /api/bookings` - create booking
+- `PUT /api/bookings/{id}` - full update
+- `PATCH /api/bookings/{id}/status` - status update only
+- `DELETE /api/bookings/{id}` - cancel/delete booking
 
-## Security Stages (Jenkins)
-1. Checkout from GitHub  
-Why: pipeline always uses tracked source revision.
-2. SonarQube code scan  
-Why: catches code smells, bugs, and security hotspots early.
-3. OWASP Dependency Check  
-Why: detects vulnerable third-party libraries (CVEs).
-4. Docker build  
-Why: produces immutable deployable artifact.
-5. Trivy image scan  
-Why: checks image OS/packages for vulnerabilities.
-6. Deploy container  
-Why: only promoted build gets deployed.
+Why separate `PATCH /status`:
+- Status changes are frequent operations and should stay simple.
 
-## Useful Commands
+## How To Check DB Tables
+
+1. Open MySQL shell inside container:
+```powershell
+docker exec -it hotel_mysql_db mysql -u hotel_user -p
+```
+Password: `hotel_pass@123`
+
+2. Select DB and show tables:
+```sql
+USE hotel_booking;
+SHOW TABLES;
+```
+
+3. Check table structure:
+```sql
+DESCRIBE bookings;
+```
+
+4. Check booking data:
+```sql
+SELECT id, guest_name, room_type, status, check_in_date, check_out_date
+FROM bookings
+ORDER BY id;
+```
+
+5. Exit:
+```sql
+exit
+```
+
+One-line DB check:
+```powershell
+docker exec -it hotel_mysql_db mysql -u hotel_user -photel_pass@123 -e "USE hotel_booking; SHOW TABLES; SELECT id, guest_name, room_type, status FROM bookings ORDER BY id;"
+```
+
+Why DB checks matter:
+- Confirms persistence is working.
+- Confirms API actions are reflected in real tables.
+
+## Useful DevOps Commands
+
+Show logs:
 ```bash
+docker compose logs -f mysql-db
 docker compose logs -f rest-api
 docker compose logs -f react-app
-docker compose logs -f mysql-db
+```
+
+Restart services:
+```bash
+docker compose restart
+```
+
+Stop and remove containers:
+```bash
 docker compose down
 ```
 
+Stop and remove containers + volume (full reset):
+```bash
+docker compose down -v
+```
+
+Why keep these commands handy:
+- They are the fastest path for troubleshooting in CI and local environments.
+
 ## Troubleshooting
-- Backend port conflict:
-  Change `API_PORT` in `.env` if current value is in use.
-- Frontend `502 Bad Gateway`:
-  Backend is still starting; wait and refresh.
-- MySQL startup delay:
-  First run is slower because DB initialization takes time.
+
+- Port conflict (`bind ... port is already allocated`):
+  - Change `MYSQL_PORT`, `API_PORT`, or `WEB_PORT` in `.env`.
+- React opens but API calls fail:
+  - Check `docker compose logs -f rest-api`.
+- API starts but DB connection fails:
+  - Check `docker compose logs -f mysql-db`.
+- Need fresh DB:
+  - Use `docker compose down -v` then `docker compose up -d --build`.
+
+## Security + Quality Gates For DevOps
+
+Recommended Jenkins pipeline stages:
+1. Checkout (GitHub)
+2. SonarQube scan (SAST)
+3. OWASP Dependency Check
+4. Docker image build
+5. Trivy image scan
+6. Deploy containers
+
+Why this order:
+- Fail early on code and dependency risk before deployment.
 
 ## Design Principle
 
@@ -132,21 +217,29 @@ Developer -> GitHub -> Jenkins
 ```
 
 ## Process To Make This Setup
-1. Prepare one build host (VM/server) with Docker, Docker Compose, Java 17, and Git.
-2. Run Jenkins as system service and open `http://<jenkins-host>:8080`.
-3. Complete Jenkins setup and install plugins: Pipeline, Git, Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check.
+
+1. Prepare one Linux/Windows build machine with Docker, Docker Compose, Java 17, Maven, and Git.
+2. Install Jenkins as a system service.
+3. Install Jenkins plugins: Git, Pipeline, Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check.
 4. Run SonarQube:
 ```bash
 docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
 ```
-5. Create SonarQube project/token and add it in Jenkins credentials and SonarQube server config.
+5. Generate Sonar token and store it in Jenkins credentials.
 6. Install Trivy on Jenkins host and verify:
 ```bash
 trivy --version
 ```
-7. Connect Jenkins pipeline job to this GitHub repository.
-8. Implement pipeline stages in this order: Checkout -> SonarQube -> OWASP -> Docker Build -> Trivy -> Deploy.
-9. Keep deployment values in `.env` (`API_PORT`, `WEB_PORT`, `MYSQL_PORT`, DB credentials).
-10. Run pipeline and validate:
-   - Frontend: `http://localhost:3000`
-   - API Health: `http://localhost:${API_PORT}/api/system/health`
+7. Create Jenkins pipeline job connected to this GitHub repository.
+8. Add pipeline stages in this order:
+   - Checkout
+   - SonarQube
+   - OWASP Dependency Check
+   - Docker Build
+   - Trivy Scan
+   - Docker Compose Deploy
+9. Keep runtime config in `.env` so port/user/password changes do not require code edits.
+10. After deployment, validate:
+   - `http://localhost:3000`
+   - `http://localhost:9090/api/system/health`
+   - DB table check with `SHOW TABLES;` and `SELECT * FROM bookings;`
