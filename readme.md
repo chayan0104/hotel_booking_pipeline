@@ -1,16 +1,11 @@
 # Hotel Booking Service (React + Spring Boot + MySQL)
 
 This project is a complete hotel booking service with:
-- Modern React frontend for operations team
-- Spring Boot REST API for booking management
-- MySQL database for persistent booking data
-- Docker Compose for one-command runtime
-- DevSecOps-oriented flow for Jenkins pipeline
-
-Why this setup:
-- It is easy to run locally for developers.
-- It is easy to automate in CI/CD for DevOps.
-- It keeps frontend, backend, and database clearly separated.
+- React frontend (operations dashboard)
+- Spring Boot backend API
+- MySQL database (persistent booking data)
+- Docker Compose for local and CI runtime
+- Jenkins DevSecOps pipeline with quality gates
 
 ## What This Application Does
 
@@ -20,19 +15,13 @@ Why this setup:
 - Cancel bookings
 - Show dashboard metrics (active stays, check-ins/check-outs, revenue)
 
-Why these features:
-- They match common hotel front desk and operations workflows.
-
 ## Tech Stack
 
 - Frontend: React 18 + Nginx
 - Backend: Spring Boot 2.7 + Spring Data JPA
 - Database: MySQL 8.4
 - Runtime: Docker Compose
-
-Why JPA:
-- Reduces boilerplate SQL code.
-- Keeps code easier to maintain and test.
+- CI/CD: Jenkins + SonarQube + OWASP Dependency Check + Trivy
 
 ## Container Architecture
 
@@ -40,28 +29,29 @@ Why JPA:
 
 Why:
 - `react-app` serves UI and proxies API calls.
-- `rest-api` owns business logic and validation.
+- `rest-api` contains validation and business logic.
 - `mysql-db` stores bookings permanently.
 
 ## Project Structure
 
-- `React App/` - React source + Docker/Nginx
-- `Rest Api/` - Spring Boot source + Docker
-- `docker-compose.yml` - multi-container runtime
-- `.env.example` - environment template
+- `React App/` - frontend source and Docker/Nginx files
+- `Rest Api/` - backend source and Docker files
+- `docker-compose.yml` - local deployment orchestration
+- `.env.example` - environment variable template
+- `Jenkinsfile` - CI/CD pipeline with security and quality gates
 
 ## Environment Variables
 
 | Variable | Example | Why It Is Used |
 |---|---|---|
-| `MYSQL_ROOT_PASSWORD` | `root@123` | MySQL container initialization |
-| `MYSQL_DATABASE` | `hotel_booking` | Database name created at startup |
-| `MYSQL_USER` | `hotel_user` | App DB user |
-| `MYSQL_PASSWORD` | `hotel_pass@123` | App DB password |
-| `MYSQL_PORT` | `3306` | Host port to access MySQL |
-| `API_PORT` | `9090` | Host port for Spring Boot API |
-| `WEB_PORT` | `3000` | Host port for React UI |
-| `JAVA_OPTS` | `-Xms256m -Xmx512m` | JVM memory tuning for container |
+| `MYSQL_ROOT_PASSWORD` | `root@123` | MySQL initialization |
+| `MYSQL_DATABASE` | `hotel_booking` | Default database |
+| `MYSQL_USER` | `hotel_user` | Application DB user |
+| `MYSQL_PASSWORD` | `hotel_pass@123` | Application DB password |
+| `MYSQL_PORT` | `3306` | Host port for MySQL |
+| `API_PORT` | `9090` | Host port for backend API |
+| `WEB_PORT` | `3000` | Host port for frontend |
+| `JAVA_OPTS` | `-Xms256m -Xmx512m` | JVM tuning for backend container |
 
 ## Quick Start
 
@@ -69,127 +59,183 @@ Why:
 ```powershell
 Copy-Item .env.example .env
 ```
-Why: keeps deploy configuration out of source code.
 
-2. Build and start:
+2. Build and run:
 ```bash
 docker compose up --build -d
 ```
-Why: builds latest app images and runs all services together.
 
-3. Check containers:
+3. Verify containers:
 ```bash
 docker compose ps
 ```
-Why: verifies all services are up and mapped correctly.
 
-4. Open application:
+4. Open:
 - Frontend: `http://localhost:3000`
 - API Hello: `http://localhost:9090/hello`
 - API Health: `http://localhost:9090/api/system/health`
 
 ## API Endpoints
 
-- `GET /api/bookings` - list bookings
-- `GET /api/bookings/{id}` - booking by id
-- `POST /api/bookings` - create booking
-- `PUT /api/bookings/{id}` - full update
-- `PATCH /api/bookings/{id}/status` - status update only
-- `DELETE /api/bookings/{id}` - cancel/delete booking
-
-Why separate `PATCH /status`:
-- Status changes are frequent operations and should stay simple.
+- `GET /api/bookings`
+- `GET /api/bookings/{id}`
+- `POST /api/bookings`
+- `PUT /api/bookings/{id}`
+- `PATCH /api/bookings/{id}/status`
+- `DELETE /api/bookings/{id}`
 
 ## How To Check DB Tables
 
-1. Open MySQL shell inside container:
+1. Open MySQL shell:
 ```powershell
 docker exec -it hotel_mysql_db mysql -u hotel_user -p
 ```
 Password: `hotel_pass@123`
 
-2. Select DB and show tables:
+2. Check schema:
 ```sql
 USE hotel_booking;
 SHOW TABLES;
-```
-
-3. Check table structure:
-```sql
 DESCRIBE bookings;
 ```
 
-4. Check booking data:
+3. Check data:
 ```sql
 SELECT id, guest_name, room_type, status, check_in_date, check_out_date
 FROM bookings
 ORDER BY id;
 ```
 
-5. Exit:
-```sql
-exit
-```
-
-One-line DB check:
+One-line check:
 ```powershell
 docker exec -it hotel_mysql_db mysql -u hotel_user -photel_pass@123 -e "USE hotel_booking; SHOW TABLES; SELECT id, guest_name, room_type, status FROM bookings ORDER BY id;"
 ```
 
-Why DB checks matter:
-- Confirms persistence is working.
-- Confirms API actions are reflected in real tables.
-
 ## Useful DevOps Commands
 
-Show logs:
 ```bash
 docker compose logs -f mysql-db
 docker compose logs -f rest-api
 docker compose logs -f react-app
-```
-
-Restart services:
-```bash
 docker compose restart
-```
-
-Stop and remove containers:
-```bash
 docker compose down
-```
-
-Stop and remove containers + volume (full reset):
-```bash
 docker compose down -v
 ```
 
-Why keep these commands handy:
-- They are the fastest path for troubleshooting in CI and local environments.
-
 ## Troubleshooting
 
-- Port conflict (`bind ... port is already allocated`):
-  - Change `MYSQL_PORT`, `API_PORT`, or `WEB_PORT` in `.env`.
-- React opens but API calls fail:
-  - Check `docker compose logs -f rest-api`.
-- API starts but DB connection fails:
-  - Check `docker compose logs -f mysql-db`.
-- Need fresh DB:
-  - Use `docker compose down -v` then `docker compose up -d --build`.
+- Port already in use:
+  - change `MYSQL_PORT`, `API_PORT`, or `WEB_PORT` in `.env`.
+- API not reachable:
+  - check `docker compose logs -f rest-api`.
+- DB connection failure:
+  - check `docker compose logs -f mysql-db`.
+- Full reset:
+  - `docker compose down -v && docker compose up -d --build`.
 
-## Security + Quality Gates For DevOps
+## Jenkins Pipeline Added
 
-Recommended Jenkins pipeline stages:
-1. Checkout (GitHub)
-2. SonarQube scan (SAST)
-3. OWASP Dependency Check
-4. Docker image build
-5. Trivy image scan
-6. Deploy containers
+Pipeline file included: `Jenkinsfile`
+
+Pipeline stages:
+1. `Clone Code from GitHub`
+2. `SonarQube Quality Analysis`
+3. `OWASP Dependency Check`
+4. `Sonar Quality Gate Scan`
+5. `Trivy File System Scan`
+6. `Docker Build`
+7. `Deploy Container`
 
 Why this order:
-- Fail early on code and dependency risk before deployment.
+- Security and code quality are validated before build/deploy.
+- Quality gate blocks unsafe or low-quality code automatically.
+
+## Quality Gate (Important)
+
+`Jenkinsfile` uses:
+```groovy
+waitForQualityGate abortPipeline: true
+```
+
+What happens:
+- Jenkins waits for SonarQube result.
+- If gate fails, pipeline stops immediately.
+- Docker build/deploy stages do not run on failed quality gate.
+
+Recommended Quality Gate policy in SonarQube:
+1. New Bugs = 0
+2. New Vulnerabilities = 0
+3. New Security Hotspots Reviewed >= 80%
+4. New Code Coverage >= 80%
+5. Duplicated Lines on New Code <= 3%
+
+## Complete Setup Steps For Jenkins + Quality Gate
+
+1. Install Jenkins (system service) on a Linux/Windows server.
+2. Install tools on Jenkins host:
+   - Docker, Docker Compose v2
+   - Java 17
+   - Maven 3.9+
+   - Trivy
+   - Git
+3. Verify tools:
+```bash
+docker --version
+docker compose version
+java -version
+mvn -version
+trivy --version
+git --version
+```
+4. Install Jenkins plugins:
+   - Pipeline
+   - Git
+   - Docker Pipeline
+   - SonarQube Scanner for Jenkins
+   - OWASP Dependency-Check Plugin
+   - Email Extension Plugin
+   - Credentials Binding
+   - Pipeline Utility Steps
+   - ANSI Color
+5. Start SonarQube:
+```bash
+docker run -d --name sonarqube -p 9000:9000 sonarqube:latest
+```
+6. In SonarQube, create project + generate token.
+7. In Jenkins, open `Manage Jenkins -> System` and configure SonarQube:
+   - Name: `sonarqube-server` (must match Jenkinsfile)
+   - URL: `http://<sonarqube-host>:9000`
+   - Token: created Sonar token
+8. In Jenkins, open `Manage Jenkins -> Tools`:
+   - Configure OWASP Dependency Check tool
+   - Name it `dependency-check` (must match Jenkinsfile)
+9. Configure email in `Manage Jenkins -> System`:
+   - Set SMTP server (for example Gmail/Office365 company SMTP)
+   - Set sender email
+   - Test email from Jenkins UI
+10. Edit `Jenkinsfile` `EMAIL_RECIPIENTS` value with your team email.
+11. Push this repo to GitHub (including `Jenkinsfile`).
+12. Create Jenkins job:
+   - `New Item -> Pipeline`
+   - Definition: `Pipeline script from SCM`
+   - SCM: Git
+   - Repository URL: your repo
+   - Script Path: `Jenkinsfile`
+13. Run `Build Now`.
+14. Stage behavior:
+   - SonarQube scan runs first
+   - OWASP dependency scan runs
+   - Sonar quality gate pass/fail is evaluated
+   - Trivy scan must pass (no HIGH/CRITICAL if configured)
+   - Docker build + deploy happens only if all checks pass
+15. Email behavior:
+   - On success: deployment success email is sent
+   - On failure: failure email is sent
+   - OWASP dependency report and Trivy report are attached
+16. Validate deployment after success:
+   - `http://localhost:3000`
+   - `http://localhost:9090/api/system/health`
+   - DB check with `SHOW TABLES;` and booking query.
 
 ## Design Principle
 
@@ -205,41 +251,30 @@ Why this order:
 ```text
 Developer -> GitHub -> Jenkins
               |
-        SonarQube (Code Scan)
+       Clone Code from GitHub
               |
-        OWASP (Dependency Scan)
+       SonarQube Quality Analysis
               |
-        Docker Build
+       OWASP Dependency Check
               |
-        Trivy Scan
+       Sonar Quality Gate Scan
+              |
+       Trivy File System Scan
+              |
+          Docker Build
               |
         Deploy Container
 ```
 
 ## Process To Make This Setup
 
-1. Prepare one Linux/Windows build machine with Docker, Docker Compose, Java 17, Maven, and Git.
-2. Install Jenkins as a system service.
-3. Install Jenkins plugins: Git, Pipeline, Docker Pipeline, SonarQube Scanner, OWASP Dependency-Check.
-4. Run SonarQube:
-```bash
-docker run -d --name sonarqube -p 9000:9000 sonarqube:lts-community
-```
-5. Generate Sonar token and store it in Jenkins credentials.
-6. Install Trivy on Jenkins host and verify:
-```bash
-trivy --version
-```
-7. Create Jenkins pipeline job connected to this GitHub repository.
-8. Add pipeline stages in this order:
-   - Checkout
-   - SonarQube
-   - OWASP Dependency Check
-   - Docker Build
-   - Trivy Scan
-   - Docker Compose Deploy
-9. Keep runtime config in `.env` so port/user/password changes do not require code edits.
-10. After deployment, validate:
-   - `http://localhost:3000`
-   - `http://localhost:9090/api/system/health`
-   - DB table check with `SHOW TABLES;` and `SELECT * FROM bookings;`
+1. Prepare Jenkins host with Docker, Java 17, Maven, Trivy, and Git.
+2. Install Jenkins and required plugins.
+3. Start SonarQube and create token.
+4. Configure SonarQube in Jenkins as `sonarqube-server`.
+5. Configure OWASP tool in Jenkins as `dependency-check`.
+6. Push this project with `Jenkinsfile` to GitHub.
+7. Create Jenkins Pipeline job using SCM and script path `Jenkinsfile`.
+8. Run pipeline and monitor all scan stages.
+9. Fix any quality gate or security scan failure before deploy.
+10. On success, validate UI/API/DB and keep reports as build artifacts.
