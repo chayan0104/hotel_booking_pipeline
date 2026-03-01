@@ -1,12 +1,6 @@
 pipeline {
     agent any
 
-    options {
-        timestamps()
-        ansiColor('xterm')
-        disableConcurrentBuilds()
-    }
-
     environment {
         SONARQUBE_SERVER = 'sonarqube-server'
         DEPENDENCY_CHECK_TOOL = 'dependency-check'
