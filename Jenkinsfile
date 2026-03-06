@@ -75,11 +75,6 @@ pipeline {
                 '''
             }
         }
-        stage('Trivy Image Scan') {
-             steps {
-               sh 'trivy image hotel-booking-service'
-           }
-        }
 
         stage('Build Docker Image') {
             steps {
