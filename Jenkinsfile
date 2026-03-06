@@ -34,6 +34,12 @@ pipeline {
                           -Dsonar.projectKey=hotel-booking-service \
                           -Dsonar.projectName="Hotel Booking Service" \
                           -Dsonar.java.binaries=target/classes
+
+                        cd "React App"
+                        mvn sonar:sonar \
+                          -Dsonar.projectKey=hotel-booking-service \
+                          -Dsonar.projectName="Hotel Booking Service" \
+                          -Dsonar.java.binaries=target/classes
                     '''
                 }
             }
