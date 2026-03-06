@@ -62,7 +62,7 @@ pipeline {
                         withSonarQubeEnv("${SONARQUBE_SERVER}") {
                             dir('React App') {
                                 sh '''
-                                npx wsonar-scanner \
+                                npx sonar-scanner \
                                   -Dsonar.projectKey=hotel-booking-frontend \
                                   -Dsonar.projectName="Hotel Booking Frontend" \
                                   -Dsonar.sources=src
@@ -79,7 +79,6 @@ pipeline {
             steps {
                 sh '''
                 mkdir -p trivy-reports
-
                 trivy fs \
                   --scanners vuln,misconfig \
                   --severity HIGH,CRITICAL \
