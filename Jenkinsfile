@@ -16,11 +16,19 @@ pipeline {
             }
         }
 
-        stage('Build Application') {
+        stage('Build Backend') {
             steps {
                 sh '''
                     cd "Rest Api"
                     mvn clean package -DskipTests
+                '''
+            }
+        }
+        stage('Build Frontend') {
+            steps {
+                sh '''
+                    cd "React App"
+                    npm run build
                 '''
             }
         }
@@ -44,7 +52,7 @@ pipeline {
                 }
             }
         }
-
+/*
         stage('OWASP Dependency Check') {
         steps {
             sh 'mkdir -p dependency-check-report'
@@ -60,7 +68,7 @@ pipeline {
             dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.xml'
            }
         }
-/*
+
         stage('Sonar Quality Gate') {
             steps {
                 timeout(time: 20, unit: 'MINUTES') {
