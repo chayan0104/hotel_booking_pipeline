@@ -10,7 +10,6 @@ pipeline {
     }
 
     stages {
-
         stage('Checkout Source Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/chayan0104/hotel_booking_pipeline.git'
