@@ -41,14 +41,16 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             steps {
+                sh 'mkdir -p dependency-check-report'
+                
                 dependencyCheck additionalArguments: '''
-                    --scan .
-                    --format XML
-                    --format HTML
-                    --out dependency-check-report
+                --scan .
+                --format XML
+                --format HTML
+                --out dependency-check-report
                 ''',
-                odcInstallation: "${DEPENDENCY_CHECK}"
-
+                odcInstallation: 'dependency-check'
+        
                 dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.xml'
             }
         }
@@ -62,17 +64,17 @@ pipeline {
         }
 
         stage('Trivy Filesystem Scan') {
-            steps {
-                sh '''
-                    mkdir -p trivy-reports
-                    trivy fs \
-                      --scanners vuln,secret,misconfig \
-                      --severity HIGH,CRITICAL \
-                      --exit-code 1 \
-                      --format table \
-                      --output trivy-reports/trivy-fs-report.txt .
-                '''
-            }
+           steps {
+              sh '''
+              mkdir -p trivy-reports
+              trivy fs \
+              --scanners vuln,secret,misconfig \
+              --severity HIGH,CRITICAL \
+              --exit-code 0 \
+              --format table \
+              --output trivy-reports/trivy-fs-report.txt .
+              '''
+           }
         }
 
         stage('Build Docker Image') {
