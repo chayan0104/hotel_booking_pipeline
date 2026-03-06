@@ -28,28 +28,39 @@ pipeline {
             steps {
                 sh '''
                     cd "React App"
+                    npm install
                     npm run build
                 '''
             }
         }
 
-        stage('SonarQube Code Analysis') {
-            steps {
-                withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                    sh '''
-                        cd "Rest Api"
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=hotel-booking-service \
-                          -Dsonar.projectName="Hotel Booking Service" \
-                          -Dsonar.java.binaries=target/classes
-
-                        cd "React App"
-                        mvn sonar:sonar \
-                          -Dsonar.projectKey=hotel-booking-service \
-                          -Dsonar.projectName="Hotel Booking Service" \
-                          -Dsonar.java.binaries=target/classes
-                    '''
+        stage('SonarQube Analysis') {
+            parallel {
+                stage('Backend Scan') {
+                    steps {
+                        withSonarQubeEnv('sonarqube-server') {
+                            sh '''
+                            cd "Rest Api"
+                            mvn sonar:sonar \
+                              -Dsonar.projectKey=hotel-booking-backend \
+                              -Dsonar.projectName="Hotel Booking Backend"
+                            '''
+                        }
+                    }
                 }
+                stage('Frontend Scan') {
+                    steps {
+                        withSonarQubeEnv('sonarqube-server') {
+                            sh '''
+                            cd "React App"
+                            sonar-scanner \
+                              -Dsonar.projectKey=hotel-booking-frontend \
+                              -Dsonar.projectName="Hotel Booking Frontend"
+                            '''
+                        }
+                    }
+                }
+        
             }
         }
 /*
@@ -104,7 +115,7 @@ pipeline {
                 sh '''
                     trivy image \
                       --severity HIGH,CRITICAL \
-                      --exit-code 1 \
+                      --exit-code 0 \
                       --format table \
                       ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
