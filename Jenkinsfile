@@ -19,7 +19,7 @@ pipeline {
                 git branch: 'main', url: 'https://github.com/chayan0104/hotel_booking_pipeline.git'
             }
         }
-
+/*
         stage('Build Backend') {
             steps {
                 dir('Rest Api') {
@@ -88,7 +88,7 @@ pipeline {
                 '''
             }
         }
-
+*/
         stage('Build Docker Images') {
             steps {
                 sh '''
