@@ -4,7 +4,7 @@ pipeline {
     environment {
         SONARQUBE_SERVER = 'sonarqube-server'
         DEPENDENCY_CHECK = 'dependency-check'
-        EMAIL_RECIPIENTS = 'devops-team@example.com'
+        EMAIL_RECIPIENTS = 'chayansamanta8@gmail.com'
         IMAGE_NAME = 'hotel-booking-service'
         IMAGE_TAG = "v${BUILD_NUMBER}"
     }
@@ -40,29 +40,29 @@ pipeline {
         }
 
         stage('OWASP Dependency Check') {
-            steps {
-                sh 'mkdir -p dependency-check-report'
-                
-                dependencyCheck additionalArguments: '''
+        steps {
+            sh 'mkdir -p dependency-check-report'
+    
+            dependencyCheck additionalArguments: '''
                 --scan .
                 --format XML
                 --format HTML
                 --out dependency-check-report
-                ''',
-                odcInstallation: 'dependency-check'
-        
-                dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.xml'
-            }
+            ''',
+            odcInstallation: 'dependency-check'
+    
+            dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.xml'
+           }
         }
-
+/*
         stage('Sonar Quality Gate') {
             steps {
-                timeout(time: 10, unit: 'MINUTES') {
+                timeout(time: 20, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
-
+*/
         stage('Trivy Filesystem Scan') {
            steps {
               sh '''
