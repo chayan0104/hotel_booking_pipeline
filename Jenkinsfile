@@ -62,7 +62,7 @@ pipeline {
                         withSonarQubeEnv("${SONARQUBE_SERVER}") {
                             dir('React App') {
                                 sh '''
-                                sonar-scanner \
+                                npx wsonar-scanner \
                                   -Dsonar.projectKey=hotel-booking-frontend \
                                   -Dsonar.projectName="Hotel Booking Frontend" \
                                   -Dsonar.sources=src
