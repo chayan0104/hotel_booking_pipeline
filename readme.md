@@ -1,4 +1,23 @@
 # Hotel Booking Service (React + Spring Boot + MySQL)
+GitHub
+   ↓
+Jenkins Pipeline
+   ↓
+Clone Code
+   ↓
+SonarQube Static Code Analysis
+   ↓
+OWASP Dependency Check (SCA)
+   ↓
+Sonar Quality Gate Validation
+   ↓
+Trivy Security Scan
+   ↓
+Docker Build
+   ↓
+Docker Compose Deployment
+   ↓
+Email Notification
 
 This project is a complete hotel booking service with:
 - React frontend (operations dashboard)

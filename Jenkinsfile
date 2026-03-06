@@ -3,23 +3,35 @@ pipeline {
 
     environment {
         SONARQUBE_SERVER = 'sonarqube-server'
-        DEPENDENCY_CHECK_TOOL = 'dependency-check'
+        DEPENDENCY_CHECK = 'dependency-check'
         EMAIL_RECIPIENTS = 'devops-team@example.com'
+        IMAGE_NAME = 'hotel-booking-service'
+        IMAGE_TAG = "v${BUILD_NUMBER}"
     }
 
     stages {
-        stage('Clone Code from GitHub') {
+
+        stage('Checkout Source Code') {
             steps {
-                checkout scm
+                git branch: 'main', url: 'https://github.com/chayan0104/hotel_booking_pipeline.git'
             }
         }
 
-        stage('SonarQube Quality Analysis') {
+        stage('Build Application') {
+            steps {
+                sh '''
+                    cd "Rest Api"
+                    mvn clean package -DskipTests
+                '''
+            }
+        }
+
+        stage('SonarQube Code Analysis') {
             steps {
                 withSonarQubeEnv("${SONARQUBE_SERVER}") {
                     sh '''
                         cd "Rest Api"
-                        mvn -B -DskipTests clean verify sonar:sonar \
+                        mvn sonar:sonar \
                           -Dsonar.projectKey=hotel-booking-service \
                           -Dsonar.projectName="Hotel Booking Service" \
                           -Dsonar.java.binaries=target/classes
@@ -30,87 +42,113 @@ pipeline {
 
         stage('OWASP Dependency Check') {
             steps {
-                dependencyCheck additionalArguments: '--scan . --format XML --format HTML --out dependency-check-report',
-                    odcInstallation: "${DEPENDENCY_CHECK_TOOL}"
-                dependencyCheckPublisher pattern: '**/dependency-check-report/dependency-check-report.xml'
+                dependencyCheck additionalArguments: '''
+                    --scan .
+                    --format XML
+                    --format HTML
+                    --out dependency-check-report
+                ''',
+                odcInstallation: "${DEPENDENCY_CHECK}"
+
+                dependencyCheckPublisher pattern: 'dependency-check-report/dependency-check-report.xml'
             }
         }
 
-        stage('Sonar Quality Gate Scan') {
+        stage('Sonar Quality Gate') {
             steps {
-                timeout(time: 15, unit: 'MINUTES') {
+                timeout(time: 10, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
 
-        stage('Trivy File System Scan') {
+        stage('Trivy Filesystem Scan') {
             steps {
                 sh '''
                     mkdir -p trivy-reports
-                    trivy fs --scanners vuln,secret,misconfig \
+                    trivy fs \
+                      --scanners vuln,secret,misconfig \
                       --severity HIGH,CRITICAL \
                       --exit-code 1 \
                       --format table \
-                      --output trivy-reports/trivy-fs.txt .
+                      --output trivy-reports/trivy-fs-report.txt .
                 '''
             }
         }
 
-        stage('Docker Build') {
+        stage('Build Docker Image') {
             steps {
-                sh 'docker compose build'
+                sh '''
+                    docker build -t ${IMAGE_NAME}:${IMAGE_TAG} .
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    trivy image \
+                      --severity HIGH,CRITICAL \
+                      --exit-code 1 \
+                      --format table \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
+                '''
             }
         }
 
         stage('Deploy Container') {
             steps {
                 sh '''
-                    docker compose down || true
-                    docker compose up -d
-                    docker compose ps
+                    docker stop hotel-app || true
+                    docker rm hotel-app || true
+
+                    docker run -d \
+                      --name hotel-app \
+                      -p 8081:8080 \
+                      ${IMAGE_NAME}:${IMAGE_TAG}
                 '''
             }
         }
     }
 
     post {
+
         success {
             emailext(
-                subject: "SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER} deployed",
+                subject: "SUCCESS: ${JOB_NAME} Build #${BUILD_NUMBER}",
                 body: """
-                    Build Status: SUCCESS
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
-                    URL: ${env.BUILD_URL}
+Build completed successfully.
 
-                    Deployment completed successfully.
-                    Attached reports include OWASP dependency report and Trivy scan output.
-                """.stripIndent(),
+Job Name: ${JOB_NAME}
+Build Number: ${BUILD_NUMBER}
+Build URL: ${BUILD_URL}
+
+Application deployed successfully.
+""",
                 to: "${EMAIL_RECIPIENTS}",
-                mimeType: 'text/plain',
                 attachmentsPattern: 'dependency-check-report/*, trivy-reports/*'
             )
         }
+
         failure {
             emailext(
-                subject: "FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "FAILED: ${JOB_NAME} Build #${BUILD_NUMBER}",
                 body: """
-                    Build Status: FAILED
-                    Job: ${env.JOB_NAME}
-                    Build: #${env.BUILD_NUMBER}
-                    URL: ${env.BUILD_URL}
+Build FAILED.
 
-                    Please check failed stage logs.
-                    Attached reports (if generated) are included.
-                """.stripIndent(),
+Job Name: ${JOB_NAME}
+Build Number: ${BUILD_NUMBER}
+Build URL: ${BUILD_URL}
+
+Please check the Jenkins logs.
+""",
                 to: "${EMAIL_RECIPIENTS}",
-                mimeType: 'text/plain',
                 attachmentsPattern: 'dependency-check-report/*, trivy-reports/*'
             )
         }
+
         always {
-            archiveArtifacts artifacts: 'trivy-reports/*, dependency-check-report/*', allowEmptyArchive: true
+            archiveArtifacts artifacts: 'dependency-check-report/*, trivy-reports/*', allowEmptyArchive: true
         }
     }
 }
