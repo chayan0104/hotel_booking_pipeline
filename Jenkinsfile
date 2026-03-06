@@ -56,6 +56,11 @@ pipeline {
                 '''
             }
         }
+        stage('Trivy Image Scan') {
+             steps {
+               sh 'trivy image hotel-booking-service'
+           }
+        }
 
         stage('Docker Build') {
             steps {
