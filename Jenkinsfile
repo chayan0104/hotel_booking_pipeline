@@ -1,123 +1,78 @@
 pipeline {
     agent any
 
-    tools {
-        nodejs 'nodejs'
-    }
-
     environment {
-        SONARQUBE_SERVER = 'sonarqube-server'
-        EMAIL_RECIPIENTS = 'chayansamanta8@gmail.com'
-        IMAGE_NAME = 'hotel-booking-service'
+        AWS_REGION = "ap-south-1"
+        AWS_ACCOUNT_ID = "123456789012"
+        ECR_REPO = "hotel-booking-service"
         IMAGE_TAG = "v${BUILD_NUMBER}"
+        IMAGE_URI = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}:${IMAGE_TAG}"
+
+        CLUSTER_NAME = "hotel-eks-cluster"
+        EMAIL_RECIPIENTS = "chayansamanta8@gmail.com"
     }
 
     stages {
 
-        stage('Checkout Source Code') {
+        stage('Checkout Code') {
             steps {
                 git branch: 'main', url: 'https://github.com/chayan0104/hotel_booking_pipeline.git'
             }
         }
-/*
-        stage('Build Backend') {
+
+        stage('Build Docker Image') {
             steps {
-                dir('Rest Api') {
-                    sh 'mvn clean package -DskipTests'
-                }
+                sh """
+                docker build -t ${ECR_REPO}:${IMAGE_TAG} .
+                """
             }
         }
 
-        stage('Build Frontend') {
+        stage('Authenticate to AWS ECR') {
             steps {
-                dir('React App') {
-                    sh '''
-                        npm install
-                        npm run build
-                    '''
-                }
+                sh """
+                aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS --password-stdin \
+                ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
+                """
             }
         }
 
-        stage('SonarQube Analysis') {
-            parallel {
-
-                stage('Backend Scan') {
-                    steps {
-                        withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                            dir('Rest Api') {
-                                sh '''
-                                mvn sonar:sonar \
-                                  -Dsonar.projectKey=hotel-booking-backend \
-                                  -Dsonar.projectName="Hotel Booking Backend" \
-                                  -Dsonar.java.binaries=target/classes
-                                '''
-                            }
-                        }
-                    }
-                }
-
-                stage('Frontend Scan') {
-                    steps {
-                        withSonarQubeEnv("${SONARQUBE_SERVER}") {
-                            dir('React App') {
-                                sh '''
-                                npx sonar-scanner \
-                                  -Dsonar.projectKey=hotel-booking-frontend \
-                                  -Dsonar.projectName="Hotel Booking Frontend" \
-                                  -Dsonar.sources=src
-                                '''
-                            }
-                        }
-                    }
-                }
-
+        stage('Tag Docker Image') {
+            steps {
+                sh """
+                docker tag ${ECR_REPO}:${IMAGE_TAG} ${IMAGE_URI}
+                """
             }
         }
 
-        stage('Trivy Filesystem Scan') {
+        stage('Push Image to ECR') {
             steps {
-                sh '''
-                mkdir -p trivy-reports
-                trivy fs \
-                  --scanners vuln,misconfig \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 0 \
-                  --format table \
-                  --output trivy-reports/trivy-fs-report.txt .
-                '''
-            }
-        }
-*/
-        stage('Build Docker Images') {
-            steps {
-                sh '''
-                docker compose build
-                '''
+                sh """
+                docker push ${IMAGE_URI}
+                """
             }
         }
 
-        stage('Trivy Image Scan') {
+        stage('Update kubeconfig') {
             steps {
-                sh '''
-                mkdir -p trivy-reports
-
-                trivy image \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 0 \
-                  --format table \
-                  --output trivy-reports/trivy-image-report.txt \
-                  mysql:8.4 || true
-                '''
+                sh """
+                aws eks update-kubeconfig \
+                --region ${AWS_REGION} \
+                --name ${CLUSTER_NAME}
+                """
             }
         }
 
-        stage('Deploy Application') {
+        stage('Deploy to EKS') {
             steps {
-                sh '''
-                docker compose down || true
-                docker compose up -d
-                '''
+                sh """
+                kubectl set image deployment/hotel-app \
+                hotel-app=${IMAGE_URI} \
+                -n default
+
+                kubectl rollout status deployment/hotel-app
+                """
             }
         }
     }
@@ -128,38 +83,23 @@ pipeline {
             emailext(
                 subject: "SUCCESS: ${JOB_NAME} Build #${BUILD_NUMBER}",
                 body: """
-Build completed successfully.
+Build successful.
 
-Job Name: ${JOB_NAME}
-Build Number: ${BUILD_NUMBER}
-Build URL: ${BUILD_URL}
+Image pushed to ECR:
+${IMAGE_URI}
 
-Application deployed successfully.
+Deployment updated in EKS cluster: ${CLUSTER_NAME}
 """,
-                to: "${EMAIL_RECIPIENTS}",
-                attachmentsPattern: 'trivy-reports/*'
+                to: "${EMAIL_RECIPIENTS}"
             )
         }
 
         failure {
             emailext(
                 subject: "FAILED: ${JOB_NAME} Build #${BUILD_NUMBER}",
-                body: """
-Build FAILED.
-
-Job Name: ${JOB_NAME}
-Build Number: ${BUILD_NUMBER}
-Build URL: ${BUILD_URL}
-
-Please check the Jenkins logs.
-""",
-                to: "${EMAIL_RECIPIENTS}",
-                attachmentsPattern: 'trivy-reports/*'
+                body: "Build failed. Please check Jenkins logs.",
+                to: "${EMAIL_RECIPIENTS}"
             )
-        }
-
-        always {
-            archiveArtifacts artifacts: 'trivy-reports/*', allowEmptyArchive: true
         }
     }
 }
