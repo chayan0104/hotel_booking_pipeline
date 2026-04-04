@@ -88,19 +88,28 @@ pipeline {
             }
         }
 
-        stage('Trivy Filesystem Scan') {
-            steps {
-                sh '''
-                mkdir -p trivy-reports
-                trivy fs \
-                  --scanners vuln,misconfig \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 0 \
-                  --format table \
-                  --output trivy-reports/trivy-fs-report.txt .
-                '''
-            }
-        }
+stage('Trivy Image Scan') {
+    steps {
+        sh '''
+        mkdir -p trivy-reports
+
+        echo "Fetching Docker images created in this build..."
+
+        images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>")
+
+        for image in $images
+        do
+            echo "Scanning $image"
+            trivy image \
+              --severity HIGH,CRITICAL \
+              --exit-code 0 \
+              --format table \
+              --output trivy-reports/$(echo $image | tr '/' '_').txt \
+              $image
+        done
+        '''
+    }
+}
 
         stage('Trivy Image Scan') {
             steps {
