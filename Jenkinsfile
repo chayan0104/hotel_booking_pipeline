@@ -14,7 +14,6 @@ pipeline {
         AWS_REGION = 'ap-south-1'
         ECR_REPO = 'hotel-booking-service'
         ECR_REGISTRY = '123456789012.dkr.ecr.ap-south-1.amazonaws.com'
-
         EKS_CLUSTER = 'hotel-booking-cluster'
     }
 
@@ -26,6 +25,61 @@ pipeline {
             }
         }
 
+        stage('Build Backend') {
+            steps {
+                dir('Rest Api') {
+                    sh 'mvn clean package -DskipTests'
+                }
+            }
+        }
+
+        stage('Build Frontend') {
+            steps {
+                dir('React App') {
+                    sh '''
+                        npm install
+                        npm run build
+                    '''
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            parallel {
+
+                stage('Backend Scan') {
+                    steps {
+                        withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                            dir('Rest Api') {
+                                sh '''
+                                mvn sonar:sonar \
+                                  -Dsonar.projectKey=hotel-booking-backend \
+                                  -Dsonar.projectName="Hotel Booking Backend" \
+                                  -Dsonar.java.binaries=target/classes
+                                '''
+                            }
+                        }
+                    }
+                }
+
+                stage('Frontend Scan') {
+                    steps {
+                        withSonarQubeEnv("${SONARQUBE_SERVER}") {
+                            dir('React App') {
+                                sh '''
+                                npx sonar-scanner \
+                                  -Dsonar.projectKey=hotel-booking-frontend \
+                                  -Dsonar.projectName="Hotel Booking Frontend" \
+                                  -Dsonar.sources=src
+                                '''
+                            }
+                        }
+                    }
+                }
+
+            }
+        }
+
         stage('Build Docker Images') {
             steps {
                 sh '''
@@ -34,11 +88,23 @@ pipeline {
             }
         }
 
-        stage('Trivy Image Scan') {
+        stage('Trivy Filesystem Scan') {
             steps {
                 sh '''
                 mkdir -p trivy-reports
+                trivy fs \
+                  --scanners vuln,misconfig \
+                  --severity HIGH,CRITICAL \
+                  --exit-code 0 \
+                  --format table \
+                  --output trivy-reports/trivy-fs-report.txt .
+                '''
+            }
+        }
 
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
                 trivy image \
                   --severity HIGH,CRITICAL \
                   --exit-code 0 \
