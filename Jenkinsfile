@@ -8,12 +8,14 @@ pipeline {
     environment {
         SONARQUBE_SERVER = 'sonarqube-server'
         EMAIL_RECIPIENTS = 'chayansamanta8@gmail.com'
+
         IMAGE_NAME = 'hotel-booking-service'
         IMAGE_TAG = "v${BUILD_NUMBER}"
 
         AWS_REGION = 'ap-south-1'
         ECR_REPO = 'hotel-booking-service'
         ECR_REGISTRY = '123456789012.dkr.ecr.ap-south-1.amazonaws.com'
+
         EKS_CLUSTER = 'hotel-booking-cluster'
     }
 
@@ -53,9 +55,9 @@ pipeline {
                             dir('Rest Api') {
                                 sh '''
                                 mvn sonar:sonar \
-                                  -Dsonar.projectKey=hotel-booking-backend \
-                                  -Dsonar.projectName="Hotel Booking Backend" \
-                                  -Dsonar.java.binaries=target/classes
+                                -Dsonar.projectKey=hotel-booking-backend \
+                                -Dsonar.projectName="Hotel Booking Backend" \
+                                -Dsonar.java.binaries=target/classes
                                 '''
                             }
                         }
@@ -68,9 +70,9 @@ pipeline {
                             dir('React App') {
                                 sh '''
                                 npx sonar-scanner \
-                                  -Dsonar.projectKey=hotel-booking-frontend \
-                                  -Dsonar.projectName="Hotel Booking Frontend" \
-                                  -Dsonar.sources=src
+                                -Dsonar.projectKey=hotel-booking-frontend \
+                                -Dsonar.projectName="Hotel Booking Frontend" \
+                                -Dsonar.sources=src
                                 '''
                             }
                         }
@@ -88,43 +90,44 @@ pipeline {
             }
         }
 
-stage('Trivy Image Scan') {
-    steps {
-        sh '''
-        mkdir -p trivy-reports
-
-        echo "Fetching Docker images created in this build..."
-
-        images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>")
-
-        for image in $images
-        do
-            echo "Scanning $image"
-            trivy image \
-              --severity HIGH,CRITICAL \
-              --exit-code 0 \
-              --format table \
-              --output trivy-reports/$(echo $image | tr '/' '_').txt \
-              $image
-        done
-        '''
-    }
-}
-
-        stage('Trivy Image Scan') {
+        stage('Trivy Filesystem Scan') {
             steps {
                 sh '''
-                trivy image \
-                  --severity HIGH,CRITICAL \
-                  --exit-code 0 \
-                  --format table \
-                  --output trivy-reports/trivy-image-report.txt \
-                  mysql:8.4 || true
+                mkdir -p trivy-reports
+
+                trivy fs \
+                --scanners vuln,misconfig \
+                --severity HIGH,CRITICAL \
+                --exit-code 0 \
+                --format table \
+                --output trivy-reports/trivy-fs-report.txt .
                 '''
             }
         }
 
-        stage('Deploy Application') {
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                mkdir -p trivy-reports
+
+                images=$(docker images --format "{{.Repository}}:{{.Tag}}" | grep -v "<none>")
+
+                for image in $images
+                do
+                    echo "Scanning $image"
+
+                    trivy image \
+                    --severity HIGH,CRITICAL \
+                    --exit-code 0 \
+                    --format table \
+                    --output trivy-reports/$(echo $image | tr '/' '_').txt \
+                    $image
+                done
+                '''
+            }
+        }
+
+        stage('Deploy Application Locally') {
             steps {
                 sh '''
                 docker compose down || true
